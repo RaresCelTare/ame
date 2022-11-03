@@ -1,0 +1,78 @@
+#!/bin/bash
+
+
+
+Term=(applocker autologger clipsvc clipup DeliveryOptimization DeviceCensus diagtrack dmclient dosvc EnhancedStorage homegroup hotspot invagent edge msra sihclient slui startupscan storsvc usoapi usoclient usocore usocoreworker usosvc WaaS windowsmaps windowsupdate wsqmcons wua wus)
+for i in "${Term[@]}"
+do
+    echo -e "\e[96mLooking for $i\e[39m"
+    fzf -e -f $i >> fzf_list
+done
+
+
+
+echo -e "\e[95mChecking if fzf found anything\e[39m"
+if [ -s fzf_list ]
+then
+    echo -e "\e[92mDirectory file not empty, continuing\e[39m"
+else
+    echo -e "\e[31mERROR! no files found, exiting\e[39m"
+    exit 1  
+fi
+
+
+
+echo -e "\e[95mDirectory processing starts here\e[39m"
+# removes some outliers that are needed
+awk '!/FileMaps/' fzf_list > fzf_no_FileMaps
+awk '!/WinSxS/' fzf_no_FileMaps > fzf_no_WinSxS
+awk '!/MSRAW/' fzf_no_WinSxS > fzf_no_MSRAW
+awk '!/msrating/' fzf_no_MSRAW > fzf_no_msrating
+
+
+
+echo -e "\e[95mfor each line remove everything after the last slash\e[39m"
+sed 's%/[^/]*$%/%' fzf_list_msrating
+
+
+
+echo -e "\e[95mCreating removal script\e[39m"
+echo '#!/bin/bash' > RemoveBloat
+awk -v quote='"' '{print "rm -rfv " quote $0 quote}' fzf_no_msrating >> RemoveBloat
+echo 'rm -rfv "Program Files/Internet Explorer"' >> RemoveBloat
+echo 'rm -rfv "Program Files/WindowsApps"' >> RemoveBloat
+echo 'rm -rfv "Program Files/Windows Defender"' >> RemoveBloat
+echo 'rm -rfv "Program Files/Windows Mail"' >> RemoveBloat
+echo 'rm -rfv "Program Files/Windows Media Player"' >> RemoveBloat
+echo 'rm -rfv "Program Files (x86)/Internet Explorer"' >> RemoveBloat
+echo 'rm -rfv "Program Files (x86)/Microsoft"' >> RemoveBloat
+echo 'rm -rfv "Program Files (x86)/Windows Defender"' >> RemoveBloat
+echo 'rm -rfv "Program Files (x86)/Windows Defender Advanced Threat Protection"' >> RemoveBloat
+echo 'rm -rfv "Program Files (x86)/Windows Mail"' >> RemoveBloat
+echo 'rm -rfv "Program Files (x86)/Windows Media Player"' >> RemoveBloat
+echo 'rm -rfv Windows/System32/wua*' >> RemoveBloat
+echo 'rm -rfv Windows/System32/wups*' >> RemoveBloat
+echo 'rm -rfv Windows/SystemApps/*CloudExperienceHost*' >> RemoveBloat
+echo 'rm -rfv Windows/SystemApps/*ContentDeliveryManager*' >> RemoveBloat
+echo 'rm -rfv Windows/SystemApps/Microsoft.MicrosoftEdge*' >> RemoveBloat
+echo 'rm -rfv Windows/SystemApps/Microsoft.Windows.Cortana*' >> RemoveBloat
+echo 'rm -rfv Windows/SystemApps/Microsoft.XboxGameCallableUI*' >> RemoveBloat
+echo 'rm -rfv Windows/SystemApps/Microsoft.XboxIdentityProvider*' >> RemoveBloat
+echo 'rm -rfv Windows/diagnostics/system/Apps' >> RemoveBloat
+echo 'rm -rfv Windows/diagnostics/system/WindowsUpdate' >> RemoveBloat
+echo 'rm -rfv "Windows/System32/smartscreen.exe"' >> RemoveBloat
+echo 'rm -rfv "Windows/System32/smartscreenps.dll"' >> RemoveBloat
+echo 'rm -rfv "Windows/System32/SecurityHealthAgent.dll"' >> RemoveBloat
+echo 'rm -rfv "Windows/System32/SecurityHealthService.exe"' >> RemoveBloat
+echo 'rm -rfv "Windows/System32/SecurityHealthSystray.exe"' >> RemoveBloat
+awk '{ print length($0) " " $0; }' RemoveBloat | sort -n | cut -d ' ' -f 2- > RemoveBloatSorted
+awk '!a[$0]++' RemoveBloatSorted > RemoveBloat
+chmod +x RemoveBloat
+./RemoveBloat
+sync
+echo -e "\e[92mBloat Removed\e[39m"
+
+
+
+rm -rfv fzf* Remove*
+echo -e "\e[92mYou may now reboot into WinCrash\e[39m"
